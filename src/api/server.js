@@ -1,5 +1,5 @@
 const express = require('express');
-
+const redis = require('../config/redis');
 const app = express();
 
 app.use(express.json());
