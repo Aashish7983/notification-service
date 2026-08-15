@@ -3,6 +3,8 @@ const Redis = require('ioredis');
 const redis = new Redis({
     host: "localhost",
     port: 6380,
+    // Required by BullMQ for blocking commands
+    maxRetriesPerRequest: null,
 });
 
 redis.on('connect', () => {
