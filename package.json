@@ -4,7 +4,7 @@
   "description": "",
   "main": "src/api/server.js",
   "scripts": {
-    "start": "node src/api/server.js",
+    "start": "nodemon src/api/server.js",
     "dev": "nodemon src/api/server.js"
   },
   "keywords": [],
@@ -12,6 +12,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@bull-board/api": "^8.6.1",
+    "@bull-board/express": "^8.6.1",
     "bullmq": "^6.0.8",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

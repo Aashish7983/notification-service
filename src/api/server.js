@@ -1,5 +1,7 @@
 const express = require('express');
 const redis = require('../config/redis');
+const testRoute = require('./routes/test.route');
+const notificationRoute = require('./routes/notification.route');
 
 require('../workers/notification.worker');
 const app = express();
@@ -7,8 +9,9 @@ const app = express();
 app.use(express.json());
 
 // Mount routes
-const testRoute = require('./routes/test.route');
+
 app.use('/test', testRoute);
+app.use('/notifications', notificationRoute);
 
 app.get('/', (req, res) => {
     res.send('Notification Service is running');
