@@ -2,7 +2,9 @@ const express = require('express');
 const redis = require('../config/redis');
 const testRoute = require('./routes/test.route');
 const notificationRoute = require('./routes/notification.route');
+const bullBoardRoute = require('./routes/bullboard.route');
 
+require('dotenv').config();
 require('../workers/notification.worker');
 const app = express();
 
@@ -12,6 +14,7 @@ app.use(express.json());
 
 app.use('/test', testRoute);
 app.use('/notifications', notificationRoute);
+app.use('/admin/queues', bullBoardRoute);
 
 app.get('/', (req, res) => {
     res.send('Notification Service is running');

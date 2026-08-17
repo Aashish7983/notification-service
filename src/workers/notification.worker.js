@@ -1,5 +1,6 @@
 const { Worker } = require('bullmq');
 const { Notification } = require('../../models');
+const {sendEmail} = require('../api/services/email.service');
 const redis = require('../config/redis');
 
 const worker = new Worker(
@@ -13,16 +14,25 @@ const worker = new Worker(
     const notification = await Notification.findByPk(notificationId);
     if (!notification) throw new Error(`Notification with ID ${notificationId} not found`);
 
+    console.log(`Sending email to ${notification.sendTo}`);
+
+
     try {
       await notification.update({ status: 'PROCESSING' });
 
       // Simulate work (replace with actual send logic)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await sendEmail({
+        to: notification.sendTo,
+        subject: "Notification Service",
+        text: notification.message,
+      })
 
       await notification.update({
         status: 'SUCCESS',
         attempts: job.attemptsMade + 1,
       });
+
+      console.log(`Email sent to ${notification.sendTo}`);
 
       return true;
     } catch (err) {
