@@ -20,6 +20,51 @@ const sendNotification = async (notificationData) => {
     return notification;
 };
 
+const sendBulkEmails = async (notificationData) => {
+    const {notificationType, sendTo, message} = notificationData;
+
+    if(!notificationType, !sendTo, !message) throw new Error('Missing required fields');
+
+    if(!Array.isArray(sendTo) || sendTo.length === 0) throw new Error('Send to must be non empty array');
+
+    //creating rows for all recipients
+
+    const notificationRows = sendTo.map((email) => ({
+        notificationType,
+        sendTo: email,
+        message,
+        status: 'PENDING',
+        attempts: 0
+    }))
+
+    const notifications = await Notification.bulkCreate(
+        notificationRows,
+        {returning : true}
+    );
+
+    //prepare for bullmq jobs
+    const jobs = notifications.map((notification)=> ({
+        name: 'sendNotification',
+        data: {
+            notificationId : notification.id,
+        },
+        opts: {
+            attempts: 3,
+            backoff: {
+                type : 'fixed',
+                delay: 5000
+            }
+        }
+    }));
+
+    await notificationQueue.addBulk(jobs);
+
+    return {
+        totalNotifications: notifications.length,
+    };
+}
+
 module.exports = {
-    sendNotification
+    sendNotification,
+    sendBulkEmails
 };

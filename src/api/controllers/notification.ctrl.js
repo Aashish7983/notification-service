@@ -9,6 +9,22 @@ const sendNotification = async (req, res) => {
     }
 };
 
+const sendBulkEmails = async (req, res) => {
+    try{
+        const result = await notificationService.sendBulkEmails(req.body);
+        res.status(201).json({
+            success: true,
+            ...result,
+        });
+    } catch (err){
+        res.status(500).json({
+            success: false,
+            error: err.message
+        })
+    }
+}
+
 module.exports = {
-    sendNotification
+    sendNotification,
+    sendBulkEmails
 };
