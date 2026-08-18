@@ -9,8 +9,6 @@ const sendEmail = async ({to, subject, text}) => {
         subject, 
         text,
     }
-
-    console.log('Sending email with the following details:', msg);
     await sgmail.send(msg);
 }
 

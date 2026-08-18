@@ -1,21 +1,17 @@
 const { Worker } = require('bullmq');
-const { Notification } = require('../../models');
+const { Notification, Campaign } = require('../../models');
 const {sendEmail} = require('../api/services/email.service');
 const redis = require('../config/redis');
 
 const worker = new Worker(
   'notificationQueue',
   async (job) => {
-    console.log(`Processing job ${job.id} with data: ${JSON.stringify(job.data)}`);
 
     const notificationId = job?.data?.notificationId;
     if (!notificationId) throw new Error('Missing notificationId in job data');
 
     const notification = await Notification.findByPk(notificationId);
     if (!notification) throw new Error(`Notification with ID ${notificationId} not found`);
-
-    console.log(`Sending email to ${notification.sendTo}`);
-
 
     try {
       await notification.update({ status: 'PROCESSING' });
@@ -32,7 +28,12 @@ const worker = new Worker(
         attempts: job.attemptsMade + 1,
       });
 
-      console.log(`Email sent to ${notification.sendTo}`);
+      await Campaign.increment(
+        { successCount: 1 },
+        { where: { id: notification.campaignId } }
+      );
+
+      await updateCampaignStatus(notification.campaignId);
 
       return true;
     } catch (err) {
@@ -42,6 +43,7 @@ const worker = new Worker(
           status: 'FAILED',
           attempts: job.attemptsMade + 1,
         });
+        
       } catch (uErr) {
         console.error('Failed to update notification after job error:', uErr);
       }
@@ -58,10 +60,24 @@ worker.on('completed', (job) => {
   console.log(`Job ${job.id} completed`);
 });
 
-worker.on('failed', (job, err) => {
+worker.on('failed', async (job, err) => {
     if(job.attemptsMade >= job.opts.attempts) {
+        const notification = await Notification.findByPk(job.data.notificationId);
+        await Campaign.increment(
+            { failedCount: 1 },
+            { where: { id: notification.campaignId } }
+        );
         console.error(`Job ${job.id} failed after ${job.attemptsMade} attempts. Final error:`, err?.message ?? err);
     }
 });
+
+const updateCampaignStatus = async (campaignId) => {
+    const campaign = await Campaign.findByPk(campaignId);
+    if (!campaign) throw new Error(`Campaign with ID ${campaignId} not found`);
+
+    if(campaign.successCount + campaign.failedCount >= campaign.totalRecipients) {
+        await campaign.update({ status: 'COMPLETED' });
+    }
+}
 
 module.exports = worker;

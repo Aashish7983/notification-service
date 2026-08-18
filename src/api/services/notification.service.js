@@ -1,4 +1,4 @@
-const { Notification } = require('../../../models');
+const { Notification, Campaign } = require('../../../models');
 const notificationQueue = require('../../queues/notification.queue');
 
 const sendNotification = async (notificationData) => {
@@ -21,7 +21,7 @@ const sendNotification = async (notificationData) => {
 };
 
 const sendBulkEmails = async (notificationData) => {
-    const {notificationType, sendTo, message} = notificationData;
+    const {notificationType, sendTo, message, campaignName} = notificationData;
 
     if(!notificationType, !sendTo, !message) throw new Error('Missing required fields');
 
@@ -29,13 +29,25 @@ const sendBulkEmails = async (notificationData) => {
 
     //creating rows for all recipients
 
-    const notificationRows = sendTo.map((email) => ({
+    const uniqueEmails = [...new Set(sendTo)];
+
+    const campaign = await Campaign.create({
+        name: campaignName,
+        status: 'CREATED',
+        totalRecipients: uniqueEmails.length,
+        successCount: 0,
+        failedCount: 0
+    })
+
+    const notificationRows = uniqueEmails.map((email) => ({
         notificationType,
         sendTo: email,
         message,
         status: 'PENDING',
-        attempts: 0
+        attempts: 0,
+        campaignId: campaign.id
     }))
+
 
     const notifications = await Notification.bulkCreate(
         notificationRows,
