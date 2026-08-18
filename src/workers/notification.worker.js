@@ -50,6 +50,7 @@ const worker = new Worker(
   },
   {
     connection: redis,
+    concurrency: 5
   }
 );
 
