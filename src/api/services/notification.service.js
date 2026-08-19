@@ -1,5 +1,25 @@
 const { Notification, Campaign } = require('../../../models');
 const notificationQueue = require('../../queues/notification.queue');
+const fs = require('fs');
+const csv = require('csv-parser');
+
+const extractEmailFromCsv = (filePath) => {
+    return new Promise((resolve, reject) => {
+        const emails = [];
+
+        fs.createReadStream(filePath)
+        .pipe(csv())
+        .on('data', (row) => {
+            if(row.email){
+                emails.push(row.email.trim());
+            }
+        })
+        .on('end', ()=> {
+            resolve(emails);
+        })
+        .on('error', reject);
+    });
+}
 
 const sendNotification = async (notificationData) => {
     const {notificationType, sendTo, message} = notificationData;
@@ -78,5 +98,6 @@ const sendBulkEmails = async (notificationData) => {
 
 module.exports = {
     sendNotification,
-    sendBulkEmails
+    sendBulkEmails,
+    extractEmailFromCsv
 };

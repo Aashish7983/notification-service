@@ -1,6 +1,9 @@
 const router = require('express').Router();
-const {getCampaignStatsController} = require('../controllers/campaignStats.ctrl');
+const campaign = require('../controllers/campaignStats.ctrl');
+const upload = require('../../config/multer');
 
-router.get('/:campaignId/stats', getCampaignStatsController);
+router.get('/:campaignId/stats', campaign.getCampaignStatsController);
+router.get('/list', campaign.getAllCampaigns);
+router.post('/upload', upload.single('file'), campaign.uploadCampaignCsv)
 
 module.exports = router;
