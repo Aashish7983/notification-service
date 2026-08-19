@@ -3,6 +3,69 @@ const notificationQueue = require('../../queues/notification.queue');
 const fs = require('fs');
 const csv = require('csv-parser');
 
+const sendNotificationByCsv = async(filePath, notificationData) => {
+    if(!filePath) throw new Error("File path required");
+    const {notificationType, message, campaignName} = notificationData;
+    if(!notificationType, !message, !campaignName) throw new Error('Missing required fields');
+    
+   try {
+     const emails = await extractEmailFromCsv(filePath);
+
+    const uniqueEmails = [...new Set(emails)];
+
+    const campaign = await Campaign.create({
+        name: campaignName,
+        status: 'CREATED',
+        totalRecipients: uniqueEmails.length,
+        successCount: 0,
+        failedCount: 0
+    })
+
+    const notificationRows = uniqueEmails.map((email) => ({
+        notificationType,
+        sendTo: email,
+        message,
+        status: 'PENDING',
+        attempts: 0,
+        campaignId: campaign.id
+    }))
+
+
+    const notifications = await Notification.bulkCreate(
+        notificationRows,
+        {returning : true}
+    );
+
+    //prepare for bullmq jobs
+    const jobs = notifications.map((notification)=> ({
+        name: 'sendNotification',
+        data: {
+            notificationId : notification.id,
+        },
+        opts: {
+            attempts: 3,
+            backoff: {
+                type : 'fixed',
+                delay: 5000
+            }
+        }
+    }));
+
+    await notificationQueue.addBulk(jobs);
+
+    fs.unlinkSync(filePath);
+
+    return {
+        totalNotifications: notifications.length,
+    };
+   } finally {
+   if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+   }
+}
+}
+
+
 const extractEmailFromCsv = (filePath) => {
     return new Promise((resolve, reject) => {
         const emails = [];
@@ -10,7 +73,7 @@ const extractEmailFromCsv = (filePath) => {
         fs.createReadStream(filePath)
         .pipe(csv())
         .on('data', (row) => {
-            if(row.email){
+            if(row.email || row.EMAIL || row.Email){
                 emails.push(row.email.trim());
             }
         })
@@ -99,5 +162,6 @@ const sendBulkEmails = async (notificationData) => {
 module.exports = {
     sendNotification,
     sendBulkEmails,
-    extractEmailFromCsv
+    extractEmailFromCsv,
+    sendNotificationByCsv
 };
