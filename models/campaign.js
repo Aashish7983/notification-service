@@ -15,7 +15,8 @@ module.exports = (sequelize, DataTypes) => {
     status: DataTypes.ENUM('CREATED', 'PROCESSING', 'COMPLETED', 'FAILED'),
     totalRecipients: DataTypes.INTEGER,
     successCount: DataTypes.INTEGER,
-    failedCount: DataTypes.INTEGER
+    failedCount: DataTypes.INTEGER,
+    sendAt: DataTypes.DATE
   }, {
     sequelize,
     modelName: 'Campaign',
