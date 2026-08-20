@@ -4,3 +4,4 @@ logs
 dist
 coverage
 .vscode/settings.json
+README.md
