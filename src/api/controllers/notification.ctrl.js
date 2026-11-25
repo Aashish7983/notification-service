@@ -17,7 +17,7 @@ const sendBulkEmails = async (req, res) => {
             ...result,
         });
     } catch (err){
-        res.status(500).json({
+        res.status(400).json({
             success: false,
             error: err.message
         })

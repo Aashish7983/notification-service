@@ -121,7 +121,7 @@ const sendNotification = async (notificationData) => {
 const sendBulkEmails = async (notificationData) => {
     const {notificationType, sendTo, message, campaignName, sendAt} = notificationData;
 
-    if(!notificationType || !sendTo || !message) throw new Error('Missing required fields');
+    if(!notificationType || !sendTo || !message || !campaignName) throw new Error('Missing required fields');
 
     if(!Array.isArray(sendTo) || sendTo.length === 0) throw new Error('Send to must be non empty array');
 
@@ -134,6 +134,7 @@ const sendBulkEmails = async (notificationData) => {
         name: campaignName,
         status: sendAt ? 'PROCESSING' : 'CREATED',
         totalRecipients: uniqueEmails.length,
+        sendAt : sendAt,
         successCount: 0,
         failedCount: 0
     })

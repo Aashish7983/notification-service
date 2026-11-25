@@ -1,11 +1,11 @@
 const express = require('express');
 const redis = require('../config/redis');
+require('dotenv').config();
 const testRoute = require('./routes/test.route');
 const notificationRoute = require('./routes/notification.route');
 const bullBoardRoute = require('./routes/bullboard.route');
 const campaignStatsRoute = require('./routes/campaignStats.route');
 
-require('dotenv').config();
 require('../workers/notification.worker');
 const app = express();
 

@@ -10,6 +10,7 @@ module.exports = {
   },
 
   async down (queryInterface, Sequelize) {
-    
+    await queryInterface.removeColumn('Campaigns', 'sendAt');
+    await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_Campaigns_sendAt"');
   }
 };

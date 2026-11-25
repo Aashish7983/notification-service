@@ -6,35 +6,30 @@ const redis = require('../config/redis');
 const worker = new Worker(
   'notificationQueue',
   async (job) => {
-
-    const notifications = job?.data?.notifications;
-
-    if (!notifications?.length) {
-      throw new Error('Missing notifications in job data');
+    const notificationId = job?.data?.notificationId;
+    if (!notificationId) {
+      throw new Error('Missing notificationId in job data');
     }
-
-    const campaignId = notifications[0].campaignId;
-
-    for (const notification of notifications) {
-
-      try {
-
-        await Notification.update(
+    const notification = await Notification.findByPk(notificationId);
+    if(!notification) throw new Error(`Notification of id ${notificationId} not found`);
+      if(notification?.status === "SUCCESS") return;
+      
+       await Notification.update(
           {
             status: 'PROCESSING'
           },
           {
             where: {
-              id: notification.id
+              id: notificationId
             }
           }
         );
 
-        await sendEmail(
-          notification.sendTo,
-          'Notification Service',
-          notification.message
-        );
+        await sendEmail({
+          to : notification.sendTo,
+          subject: 'Notification Service',
+          text: notification.message
+        });
 
         await Notification.update(
           {
@@ -44,53 +39,24 @@ const worker = new Worker(
           },
           {
             where: {
-              id: notification.id
+              id: notificationId
             }
           }
         );
 
-        await Campaign.increment(
+        if(notification?.campaignId){
+          await Campaign.increment(
           { successCount: 1 },
           {
             where: {
-              id: campaignId
+              id: notification.campaignId
             }
           }
         );
+        await updateCampaignStatus(notification.campaignId);
+        }
 
-      } catch (err) {
-
-        console.error(
-          `Failed email for ${notification.sendTo}:`,
-          err.message
-        );
-
-        await Notification.update(
-          {
-            status: 'FAILED',
-            attempts: job.attemptsMade + 1
-          },
-          {
-            where: {
-              id: notification.id
-            }
-          }
-        );
-
-        await Campaign.increment(
-          { failedCount: 1 },
-          {
-            where: {
-              id: campaignId
-            }
-          }
-        );
-      }
-    }
-
-    await updateCampaignStatus(campaignId);
-
-    return true;
+        return true;
   },
   {
     connection: redis,
@@ -109,7 +75,7 @@ worker.on('completed', (job) => {
 
 worker.on('failed', (job, err) => {
   console.error(
-    `Batch job ${job?.id} failed:`,
+    `job ${job?.id} failed:`,
     err?.message || err
   );
 });
